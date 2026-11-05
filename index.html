@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>你和父母还能聊几句 · 测评</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+       background:#f3e9dd;color:#3a2e25;line-height:1.6}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:22px 16px 40px;
+       display:flex;flex-direction:column}
+  .hidden{display:none!important}
+  h1{font-size:24px;text-align:center;color:#b5651d;margin-bottom:6px}
+  .sub{text-align:center;color:#8a7a6a;font-size:13px;margin-bottom:24px}
+  .card{background:#fff;border-radius:18px;padding:22px 18px;box-shadow:0 6px 18px rgba(160,120,80,.12)}
+  input[type=password]{width:100%;padding:14px 14px;font-size:17px;border:1.5px solid #e3d3c0;
+       border-radius:12px;outline:none;margin-bottom:12px}
+  input[type=password]:focus{border-color:#b5651d}
+  .btn{display:block;width:100%;padding:15px;border:none;border-radius:14px;font-size:17px;
+       font-weight:600;color:#fff;background:#b5651d;cursor:pointer;margin-top:10px}
+  .btn:active{opacity:.85}
+  .btn.ghost{background:#efe3d4;color:#8a6a3a}
+  .btn.line{background:#fff;color:#b5651d;border:1.5px solid #b5651d}
+  .tip{font-size:13px;color:#c0392b;text-align:center;min-height:20px;margin-top:8px}
+  .info{font-size:13px;color:#8a7a6a;text-align:center;margin-top:10px}
+  /* quiz */
+  .prog{height:8px;background:#ead9c6;border-radius:6px;overflow:hidden;margin-bottom:6px}
+  .prog>i{display:block;height:100%;background:#b5651d;width:0;transition:.2s}
+  .qcount{font-size:13px;color:#8a7a6a;text-align:center;margin-bottom:14px}
+  .qt{font-size:19px;font-weight:600;margin-bottom:18px}
+  .opt{display:block;width:100%;text-align:left;padding:15px 16px;margin-bottom:12px;font-size:16px;
+       background:#faf4ec;border:1.5px solid #ead9c6;border-radius:14px;cursor:pointer}
+  .opt:active{transform:scale(.99)}
+  .opt.sel{background:#b5651d;color:#fff;border-color:#b5651d}
+  .row{display:flex;gap:10px;margin-top:6px}
+  .row .btn{flex:1}
+  /* result */
+  .score{text-align:center;font-size:15px;color:#8a7a6a;margin-bottom:4px}
+  .score b{font-size:34px;color:#b5651d;display:block}
+  .rtype{text-align:center;font-size:26px;font-weight:700;color:#b5651d;margin:6px 0 14px}
+  .sec{margin-bottom:14px}
+  .sec .lab{font-size:14px;font-weight:700;color:#b5651d;margin-bottom:4px}
+  .sec p{font-size:15px;color:#4a3b30}
+  .poster{width:100%;border-radius:14px;margin:14px 0;display:none}
+  .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .acts .btn{grid-column:span 1;font-size:15px;padding:13px}
+  .acts .full{grid-column:1/3}
+  .toast{position:fixed;left:50%;top:40%;transform:translateX(-50%);background:rgba(40,30,20,.9);
+         color:#fff;padding:12px 18px;border-radius:10px;font-size:15px;display:none;z-index:99}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;
+         justify-content:center;z-index:100;padding:24px}
+  .modal .box{background:#fff;border-radius:16px;padding:22px;max-width:340px;text-align:center}
+  .modal .box p{font-size:15px;margin-bottom:14px}
+  .modal .wx{font-size:18px;font-weight:700;color:#b5651d;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 1. 登录视图 -->
+  <div id="loginView">
+    <h1>你和父母还能聊几句</h1>
+    <div class="sub">一份关于代际沟通的走心测评</div>
+    <div class="card">
+      <input type="password" id="pwd" placeholder="请输入测评密码" autocomplete="off">
+      <button class="btn" id="loginBtn">验证并进入</button>
+      <div class="tip" id="loginTip"></div>
+      <div class="info">每个密码可使用 3 次</div>
+    </div>
+  </div>
+
+  <!-- 2. 答题视图 -->
+  <div id="quizView" class="hidden">
+    <div id="readyState">
+      <h1 style="font-size:21px">准备开始</h1>
+      <div class="sub" id="remainTxt"></div>
+      <div class="card">
+        <p style="font-size:15px;color:#4a3b30">共 12 题，约 2 分钟。凭真实感受选，没有对错。</p>
+        <button class="btn" id="startBtn">开始测评</button>
+      </div>
+    </div>
+    <div id="questionState" class="hidden">
+      <div class="prog"><i id="progBar"></i></div>
+      <div class="qcount" id="qcount"></div>
+      <div class="card">
+        <div class="qt" id="qt"></div>
+        <div id="opts"></div>
+        <div class="row">
+          <button class="btn ghost" id="prevBtn">上一题</button>
+          <button class="btn" id="nextBtn">下一题</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 结果视图 -->
+  <div id="resultView" class="hidden">
+    <div class="card">
+      <div class="score">你的得分<b id="rScore">0</b>／36</div>
+      <div class="rtype" id="rType"></div>
+      <div class="sec"><div class="lab">画像</div><p id="rDing"></p></div>
+      <div class="sec"><div class="lab">戳心一刻</div><p id="rQu"></p></div>
+      <div class="sec"><div class="lab">为什么是这样</div><p id="rTheory"></p></div>
+      <div class="sec"><div class="lab">一句实在话</div><p id="rAdvice"></p></div>
+      <img class="poster" id="posterImg" alt="结果长图">
+      <div class="acts">
+        <button class="btn line" id="savePoster">保存结果长图</button>
+        <button class="btn line" id="saveAlbum">存手机相册</button>
+        <button class="btn line" id="copyLink">复制结果链接</button>
+        <button class="btn ghost" id="retest">再测一次</button>
+        <button class="btn full" id="praise">好评有礼（返 1 元）</button>
+      </div>
+    </div>
+    <div class="info" id="sharedTip" style="margin-top:14px"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="box">
+  <p id="modalTxt"></p>
+  <div class="wx" id="modalWx"></div>
+  <button class="btn" id="modalClose">知道了</button>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ====== 配置区：改这里就行 ====== */
+const CONFIG = {
+  supabaseUrl: "https://tlninekzvltjzchvxtzv.supabase.co",
+  supabaseKey: "sb_publishable_7UFpHL4AW2b-ZfDml_gc-Q_BMHCyz2u",
+  kefuWechat: "微信搜：你的客服号"         // ← 改成你的客服微信/公众号
+};
+const sb = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+
+/* ====== 题库 ====== */
+const QUESTIONS = [
+  {q:"你平均多久主动给父母打一次电话？",o:[["每天或隔天",3],["一周两三次",2],["一周左右一次",1],["几周甚至更久才想起来",0]]},
+  {q:"一通电话一般聊多久？",o:[["半小时以上",3],["十来分钟",2],["三五分钟敷衍",1],["接通喊声爸妈就挂",0]]},
+  {q:"你和父母聊的话题主要是？",o:[["心里话、烦恼、打算都聊",3],["日常吃喝健康",2],["只说“挺好的”",1],["没啥可聊的",0]]},
+  {q:"你遇到难过的事，会跟父母说吗？",o:[["第一时间说",3],["想说但怕他们担心忍了",2],["从不说，自己扛",1]]},
+  {q:"你工作生活里的难处，父母知道多少？",o:[["基本都知道",3],["知道个大概",2],["只知道我过得还行",1],["以为我混得特别好",0]]},
+  {q:"过年回家，你和父母真实相处状态是？",o:[["坐一块能聊到深夜",3],["吃饭看电视各干各",2],["我刷手机他们看电视",1],["待不住总想往外跑",0]]},
+  {q:"父母催婚/催生/催钱，你的反应是？",o:[["能聊开各说各理",3],["敷衍几句岔开",2],["吵一架挂电话",1],["已屏蔽这类话题",0]]},
+  {q:"你最近一次和父母说“我爱你”或拥抱，是？",o:[["经常有",3],["偶尔",2],["想不起来上次",1],["从来不会",0]]},
+  {q:"父母身体出状况，会第一时间告诉你吗？",o:[["啥都讲",3],["小病瞒大病才说",2],["报喜不报忧怕我担心",1],["我是从别人那听说的",0]]},
+  {q:"你做重大决定（换工作、买房、分手）会问父母意见吗？",o:[["认真商量",3],["通知一声",2],["事后才说",1],["从不告诉",0]]},
+  {q:"你和父母的微信互动主要是？",o:[["聊天分享日常",3],["点赞评论",2],["只收不回",1],["基本不互动",0]]},
+  {q:"想到“父母一天天老去”，你最怕的是？",o:[["怕没好好陪、话没说够",3],["怕他们生病我不在",2],["有点怕但不愿想",1],["没怎么想过",0]]}
+];
+
+/* ====== 结果分型 ====== */
+const RESULTS = [
+  {name:"掏心窝子型",min:30,max:36,
+   ding:"你和父母是少见的“啥都能聊”——烦恼、收入、感情都不避讳。",
+   qu:"这种关系在朋友圈属于“别人家的”，晒出来招人羡慕也招人问秘诀。",
+   theory:"社会渗透理论（Altman & Taylor, 1973）指出，亲密靠自我表露的“广度”与“深度”双向推进，你已到核心层。你家沟通属于家庭沟通模式里的“高对话取向”，鼓励表达而非维持表面和谐。",
+   advice:"别嫌烦，这种关系是稀缺资产。趁父母在，多录几句他们的唠叨。"},
+  {name:"报喜不报忧型",min:21,max:29,
+   ding:"电话没断过，但“我挺好的”是口头禅，难处自己扛。",
+   qu:"典型中国式孝顺——怕他们担心，也怕被说“不听老人言”。",
+   theory:"中国家庭普遍呈“高一致性取向”，维持和谐、回避冲突优先于真实表达；叠加高语境文化下情感含蓄，子女默认报喜不报忧是保护父母。社会情绪选择理论也说明，年轻人忙于目标，把情感交流排后，并非故意冷落。",
+   advice:"下次试着说一句“最近有点累”。你会发现父母比你以为的扛得住。"},
+  {name:"同框沉默型",min:12,max:20,
+   ding:"人回了家，心还在外头。同屋各刷各手机，过年像完成打卡。",
+   qu:"物理距离近了，心理距离没跟上，最扎心的一种“在一起”。",
+   theory:"城乡大规模迁移让家庭“长期分离→短暂团聚”，团聚时生活圈错位、数字鸿沟导致无共同话题。符号互动论认为互动依赖共同意义符号，代际符号库差异大，自然无话。",
+   advice:"别逼自己深聊。先从一起做饭、散步这种“不说话也舒服”的事开始。"},
+  {name:"客气亲戚型",min:0,max:11,
+   ding:"父母更像一年见一次的亲戚，客气、客套、客客气气地疏远。",
+   qu:"彼此都小心翼翼怕说错话，关系停在“面子”层。",
+   theory:"长期缺乏渗透积累形成关系惰性；高一致性取向走到极端=回避一切可能引发紧张的话题。若童年有留守/空巢经历，依恋理论（Bowlby）可佐证成年后亲近他人本就偏困难。",
+   advice:"不要求立刻亲密。先从“每周一条不是转发的内容”开始，哪怕是张晚饭照片。"}
+];
+function getResult(score){
+  return RESULTS.find(r=>score>=r.min&&score<=r.max)||RESULTS[RESULTS.length-1];
+}
+
+/* ====== 状态 ====== */
+let state={pwd:null,left:0,idx:0,answers:new Array(QUESTIONS.length).fill(-1)};
+
+/* ====== 工具 ====== */
+const $=id=>document.getElementById(id);
+function showView(v){["loginView","quizView","resultView"].forEach(x=>$(x).classList.add("hidden"));$(v).classList.remove("hidden");}
+function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",1800);}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+/* ====== 登录 ====== */
+$("loginBtn").onclick=async()=>{
+  const p=$("pwd").value.trim();
+  if(!p){ $("loginTip").textContent="请输入密码"; return; }
+  $("loginBtn").textContent="验证中…";
+  const {data,error}=await sb.rpc("verify_code",{p_code:p});
+  $("loginBtn").textContent="验证并进入";
+  if(error){ $("loginTip").textContent="网络出错，请稍后再试"; return; }
+  if(!data||!data.ok){
+    if(data&&data.reason==="exhausted"){ $("loginTip").textContent="该密码已用完"; }
+    else { $("loginTip").textContent="密码错误，请核对后重试"; }
+    return;
+  }
+  state.pwd=p; state.left=data.left;
+  enterReady();
+};
+function enterReady(){
+  showView("quizView");
+  $("readyState").classList.remove("hidden");
+  $("questionState").classList.add("hidden");
+  $("remainTxt").textContent="本密码剩余可用 "+state.left+" 次";
+}
+
+/* ====== 开始 / 答题 ====== */
+$("startBtn").onclick=async()=>{
+  const {data,error}=await sb.rpc("consume_code",{p_code:state.pwd});
+  if(error||!data||!data.ok){ toast("验证失败，请返回重试"); return; }
+  state.left=data.left;
+  state.idx=0; state.answers=state.answers.map(()=>-1);
+  $("readyState").classList.add("hidden");
+  $("questionState").classList.remove("hidden");
+  renderQ();
+};
+function renderQ(){
+  const i=state.idx, item=QUESTIONS[i];
+  $("qcount").textContent="第 "+(i+1)+" / "+QUESTIONS.length+" 题";
+  $("progBar").style.width=((i+1)/QUESTIONS.length*100)+"%";
+  $("qt").textContent=item.q;
+  const box=$("opts"); box.innerHTML="";
+  item.o.forEach((opt,oi)=>{
+    const b=document.createElement("button");
+    b.className="opt"+(state.answers[i]===oi?" sel":"");
+    b.textContent=opt[0];
+    b.onclick=()=>{ state.answers[i]=oi; renderQ(); };
+    box.appendChild(b);
+  });
+  $("prevBtn").style.visibility=i>0?"visible":"hidden";
+  $("nextBtn").textContent=(i===QUESTIONS.length-1)?"查看结果":"下一题";
+}
+$("prevBtn").onclick=()=>{ if(state.idx>0){state.idx--; renderQ();} };
+$("nextBtn").onclick=()=>{
+  if(state.answers[state.idx]<0){ toast("请先选一个答案"); return; }
+  if(state.idx<QUESTIONS.length-1){ state.idx++; renderQ(); }
+  else finish();
+};
+
+/* ====== 完成 / 结果 ====== */
+function finish(){
+  let sc=0; state.answers.forEach((a,i)=>{ if(a>=0) sc+=QUESTIONS[i].o[a][1]; });
+  showResult(sc,false);
+}
+function showResult(score,shared){
+  const r=getResult(score);
+  $("rScore").textContent=score;
+  $("rType").textContent=r.name;
+  $("rDing").textContent=r.ding;
+  $("rQu").textContent=r.qu;
+  $("rTheory").textContent=r.theory;
+  $("rAdvice").textContent=r.advice;
+  $("posterImg").style.display="none";
+  $("sharedTip").textContent=shared?"（分享结果·无需密码直接查看）":"";
+  showView("resultView");
+  // 更新可分享链接
+  const link=location.origin+location.pathname+"#s="+score;
+  window.__shareLink=link;
+}
+
+/* ====== 长图（canvas，离线可用） ====== */
+function wrapText(ctx,text,maxW){
+  const lines=[]; let line="";
+  for(const ch of text){ if(ctx.measureText(line+ch).width>maxW){lines.push(line);line=ch;} else line+=ch; }
+  if(line)lines.push(line); return lines;
+}
+function generatePoster(){
+  const score=parseInt($("rScore").textContent,10);
+  const r=getResult(score);
+  const W=750, pad=40; let y=0;
+  const c=document.createElement("canvas"); const ctx=c.getContext("2d");
+  ctx.font="16px sans-serif";
+  // 先量高度
+  const blocks=[
+    {t:"你和父母还能聊几句",f:"bold 40px sans-serif",c:"#ffffff",lh:50,center:true},
+    {t:"测 评 结 果",f:"20px sans-serif",c:"#fff3e6",lh:30,center:true},
+    {t:"得分 "+score+" / 36",f:"bold 30px sans-serif",c:"#b5651d",lh:46,center:true},
+    {t:r.name,f:"bold 52px sans-serif",c:"#b5651d",lh:64,center:true},
+    {t:r.ding,f:"20px sans-serif",c:"#4a3b30",lh:30},
+    {t:r.qu,f:"20px sans-serif",c:"#4a3b30",lh:30},
+    {t:"一句实在话："+r.advice,f:"20px sans-serif",c:"#b5651d",lh:30}
+  ];
+  let totalH=2*pad;
+  blocks.forEach(b=>{ctx.font=b.f;const ls=wrapText(ctx,b.t,W-2*pad);totalH+=ls.length*b.lh+10;});
+  totalH+=pad+80;
+  c.width=W; c.height=totalH;
+  // 背景
+  const g=ctx.createLinearGradient(0,0,0,totalH);
+  g.addColorStop(0,"#b5651d"); g.addColorStop(.18,"#d98a3d"); g.addColorStop(.18,"#f3e9dd"); g.addColorStop(1,"#f3e9dd");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,totalH);
+  // 顶部header深色块（容纳标题两行白字）
+  ctx.fillStyle="#b5651d"; ctx.fillRect(0,0,W,150);
+  y=pad;
+  blocks.forEach(b=>{
+    ctx.font=b.f; ctx.fillStyle=b.c; ctx.textAlign=b.center?"center":"left";
+    const ls=wrapText(ctx,b.t,W-2*pad);
+    ls.forEach(line=>{ ctx.fillText(b.center?(b.t):line, b.center?W/2:pad, y+b.lh); y+=b.lh; });
+    y+=10;
+  });
+  // 底部客服卡
+  ctx.fillStyle="#fff"; ctx.strokeStyle="#e3d3c0"; ctx.lineWidth=2;
+  const cardY=y, cardH=80;
+  ctx.fillRect(pad,cardY,W-2*pad,cardH); ctx.strokeRect(pad,cardY,W-2*pad,cardH);
+  ctx.fillStyle="#b5651d"; ctx.font="bold 22px sans-serif"; ctx.textAlign="center";
+  ctx.fillText(CONFIG.kefuWechat, W/2, cardY+34);
+  ctx.fillStyle="#8a7a6a"; ctx.font="16px sans-serif";
+  ctx.fillText("截图发客服，核实返现 1 元", W/2, cardY+62);
+  return c.toDataURL("image/png");
+}
+function showPoster(){
+  const data=generatePoster();
+  const img=$("posterImg"); img.src=data; img.style.display="block";
+  img.onclick=()=>{ const a=document.createElement("a"); a.href=data; a.download="父母测评结果.png"; a.click(); };
+  return img;
+}
+$("savePoster").onclick=()=>{ showPoster(); toast("长图已生成，点击图片可下载"); };
+$("saveAlbum").onclick=()=>{ const img=showPoster(); toast("长按上方图片即可保存到相册"); };
+
+/* ====== 复制链接 ====== */
+$("copyLink").onclick=()=>{
+  const link=window.__shareLink||location.href;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>toast("结果链接已复制")).catch(()=>fallbackCopy(link));
+  } else fallbackCopy(link);
+};
+function fallbackCopy(t){
+  const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta);
+  ta.select(); try{document.execCommand("copy"); toast("结果链接已复制");}catch(e){toast("复制失败，请手动复制");}
+  document.body.removeChild(ta);
+}
+
+/* ====== 再测一次 ====== */
+$("retest").onclick=()=>{
+  if(!state.pwd || state.left<=0){ $("pwd").value=""; showView("loginView"); return; }
+  enterReady();
+};
+
+/* ====== 好评有礼 ====== */
+$("praise").onclick=()=>{
+  $("modalTxt").textContent="截图本页结果，发送给客服，核实后返现 1 元。";
+  $("modalWx").textContent=CONFIG.kefuWechat;
+  $("modal").style.display="flex";
+};
+$("modalClose").onclick=()=>{ $("modal").style.display="none"; };
+
+/* ====== 启动：支持分享链接直开结果 ====== */
+(function init(){
+  const h=location.hash;
+  if(h.indexOf("#s=")===0){
+    const s=parseInt(h.slice(3),10);
+    if(!isNaN(s)&&s>=0&&s<=36){ showResult(s,true); }
+    else showView("loginView");
+  } else showView("loginView");
+})();
+</script>
+</body>
+</html>
